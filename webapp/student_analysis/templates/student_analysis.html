@@ -1,0 +1,101 @@
+<!-- templates/student_analysis.html -->
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>Student Performance Analysis</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Student Performance Analysis</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Django Webcam Capture</h1>
+
+        <div class="webcam-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+        </div>
+
+        <div class="snapshot-container">
+            <h2>Your Photo:</h2>
+            <img id="snapshot" alt="Your snapshot will appear here">
+        </div>
+
+        <div class="button-container">
+            <!-- Adding this hidden form with csrf_token -->
+            <form id="csrf-form" style="display: none;">
+                {% csrf_token %}
+            </form>
+        </div>
+
+        <div id="error-message" class="error"></div>
+    </div>
+
+    <div class="container">
+        {% for student_id, analysis in analyses.items %}
+            <div class="student-card">
+                <div class="student-header">
+                    <h2>{{ analysis.name|default:student_id }}</h2>
+                    <span class="student-id">ID: {{ student_id }} | GPA: {{ analysis.gpa|floatformat:2 }}</span>
+                </div>
+
+                <div class="student-content">
+                    {% if analysis.math_score or analysis.english_score or analysis.science_score or analysis.history_score %}
+                    <div class="scores">
+                        {% if analysis.math_score %}
+                        <div class="score-item">Math: {{ analysis.math_score }}</div>
+                        {% endif %}
+
+                        {% if analysis.english_score %}
+                        <div class="score-item">English: {{ analysis.english_score }}</div>
+                        {% endif %}
+
+                        {% if analysis.science_score %}
+                        <div class="score-item">Science: {{ analysis.science_score }}</div>
+                        {% endif %}
+
+                        {% if analysis.history_score %}
+                        <div class="score-item">History: {{ analysis.history_score }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="section overall">
+                        <div class="section-title">Overall Assessment</div>
+                        <p>{{ analysis.overall_assessment }}</p>
+                    </div>
+
+                    <div class="section strengths">
+                        <div class="section-title">Strengths</div>
+                        <p>{{ analysis.strengths }}</p>
+                    </div>
+
+                    <div class="section improvements">
+                        <div class="section-title">Areas for Improvement</div>
+                        <p>{{ analysis.areas_for_improvement }}</p>
+                    </div>
+
+                    <div class="section recommendations">
+                        <div class="section-title">Recommendations</div>
+                        <p>{{ analysis.recommendations }}</p>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="student-card">
+                <div class="student-content">
+                    <p>No student analyses found.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script src="{% static 'index.js' %}"></script>
+
+</body>
+</html>
