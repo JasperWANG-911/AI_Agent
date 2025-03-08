@@ -239,7 +239,7 @@ def classify_slide(image_path: str, model_name: str ="subject_classifier.pkl") -
     """Classifies a slide (image) into a subject."""
     # Load trained model
     model = joblib.load(model_name)
-
+    extracted_text = None
     # Extract text from slide
     if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
         extracted_text = extract_text_from_image(image_path)
