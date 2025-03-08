@@ -25,6 +25,8 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
+import joblib
+from ppt_to_text_and_image import extract_text_from_image
 
 def call_AOD(image_path):
     """
@@ -192,3 +194,59 @@ def match_face_with_name(api_key: str, image_path: str, students_folder: str = "
         response = f"API call failed: {e}"
 
     return response
+
+def describe_slide(api_key: str, image_path: str, predicted_subject: str = "Chemistry") -> str:
+    """Classifies a slide (image) into a subject, and uses this to aid a description."""
+    
+    try:
+        with open(image_path, "rb") as f:
+            input_img_bytes = f.read()
+        input_b64_str = base64.b64encode(input_img_bytes).decode("utf-8")
+    except Exception as e:
+        return f"Error reading input image: {e}"
+
+    openai.api_key = api_key
+    client = OpenAI(api_key="sk-xxxxx")
+    system_prompt = (
+        f"You are a teaching assistant asked with describing the content of a slide. You should "
+        f"describe the main subject which should be {predicted_subject}, concepts and topics covered in the slide, without directly "
+        f"reading the text on the slide. Focus on the key points and provide a clear and concise "
+        f"description of the slide's content."
+    )
+
+    # API call messages
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{input_b64_str}"}},
+        ]}
+    ]
+
+    # API call
+    try:
+        client = OpenAI(api_key=api_key)
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages
+        )
+        response = completion.choices[0].message.content
+    except Exception as e:
+        response = f"API call failed: {e}"
+
+    return response
+
+def classify_slide(image_path: str, model_name: str ="subject_classifier.pkl") -> str:
+    """Classifies a slide (image) into a subject."""
+    # Load trained model
+    model = joblib.load(model_name)
+
+    # Extract text from slide
+    if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
+        extracted_text = extract_text_from_image(image_path)
+    
+    if not extracted_text:
+        return "Could not extract text. Try a clearer image."
+
+    # Predict subject
+    predicted_subject = model.predict([extracted_text])[0]
+    return f"Predicted Subject: {predicted_subject}"
