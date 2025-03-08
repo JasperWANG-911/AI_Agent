@@ -1,32 +1,14 @@
-import ast
-import time
 import json
-import torch
 from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
-import cv2
-from segment_anything import sam_model_registry, SamPredictor
-import warnings
 import requests
-import time
-import torch
-import matplotlib.pyplot as plt
-import os
-from PIL import Image
-import torch
-import torch.nn.functional as F
 import base64
 import openai
 import os
-import glob
-from PIL import Image
-import torch
 import torch.nn.functional as F
-from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
 import joblib
 from ppt_to_text_and_image import extract_text_from_image
+import pytesseract
 
 def call_AOD(image_path):
     """
