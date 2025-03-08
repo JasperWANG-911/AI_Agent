@@ -8,7 +8,7 @@ from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
 
 # Import predefined functions
-from API_ImageAnalysis import (
+from API_ClassEngagement import (
     call_AOD, 
     emotion_analysis, 
     analyze_body_language, 
