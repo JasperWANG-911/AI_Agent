@@ -15,7 +15,6 @@ def call_AOD(image_path):
     Use the Agentic Object Detection API to detect objects(students) in an image, and return bbox
     """
     
-    # 正确的 API 端点，注意 'va.' 部分
     AOD_url = "https://api.va.landing.ai/v1/tools/agentic-object-detection"
     headers = {"Authorization": "Basic ejRkbG43a2RsaGxndnF5ZWdpbGp1Om55S1ZoWVMydlJ6QkJxSGp5Z2plQ3ZkeG42a1RmNVhi"}
     
