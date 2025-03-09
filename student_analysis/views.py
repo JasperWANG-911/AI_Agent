@@ -6,6 +6,9 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 import base64
 import os
 from django.conf import settings
+from openai import api_key
+
+from Agent_ReportGeneration import StudentFeedbackIntegrationAgent
 
 
 @ensure_csrf_cookie  # This decorator ensures the CSRF cookie is set
@@ -64,8 +67,16 @@ def save_image(request):
 @require_POST
 def process_prompt(request):
     prompt_text = request.POST.get('prompt_text')
-    response = f"Processing prompt: {prompt_text}"
 
+    integration_agent = StudentFeedbackIntegrationAgent()
+
+
+    response = integration_agent.generate_integrated_feedback(
+        prompt_text,
+        '/Users/wangyinghao/Desktop/AI_Agent/media/webcam_images/webcam_capture_2025-03-09T11-32-07-565Z.png',
+        '/Users/wangyinghao/Desktop/AI_Agent/ppts_and_images',
+        '/Users/wangyinghao/Desktop/AI_Agent/School_Records'
+    )
     return JsonResponse({
         'success': True,
         'message': 'Image saved successfully',
