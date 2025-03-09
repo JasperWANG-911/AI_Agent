@@ -316,28 +316,3 @@ Please generate a concise report answering the query based on these results."""
             import traceback
             traceback.print_exc()
             return error_message
-
-
-# Example usage
-if __name__ == "__main__":
-    # Initialize Agent
-    openai_api_key = os.environ.get("OPENAI_API_KEY")
-    agent = DynamicSchoolAgent(openai_api_key)
-    
-    # Get user query
-    query = input("\nEnter your query about student performance: ")
-    
-    # Set records directory
-    records_directory = "School_records"
-    
-    print("\n" + "="*50)
-    print("Starting analysis...")
-    print("="*50 + "\n")
-    
-    # Process query
-    response = agent.process_query(query, records_directory)
-    
-    print("\n" + "="*50)
-    print("Analysis results:")
-    print("="*50 + "\n")
-    print(response)

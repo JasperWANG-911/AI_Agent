@@ -244,23 +244,19 @@ Please generate a comprehensive, integrated feedback report that:
             traceback.print_exc()
             return error_message
 
-
-# Example usage
 if __name__ == "__main__":
     # Set predefined query
     query = "How's Sritej's performance at school recently?"
 
     # Set multiple image paths
-    image_paths = [
-        "/Users/wangyinghao/Desktop/AI_Agent/test_images/webcam_demo.PNG",
-        "/Users/wangyinghao/Desktop/AI_Agent/test_images/2.PNG"
-    ]
+    image_paths = os.listdir("/Users/ravindratummuru/Desktop/Trinity/AI_Agent/media/webcam_images")
 
+    image_paths = ["/Users/ravindratummuru/Desktop/Trinity/AI_Agent/media/webcam_images/" + path for path in image_paths]
     # Single slide image path
-    slide_image_path = "ppts_and_images/image.png"
+    slide_image_path = "/Users/ravindratummuru/Desktop/Trinity/AI_Agent/ppts_and_images"
 
     # Set records directory
-    records_directory = "/Users/wangyinghao/Desktop/AI_Agent/School_Records"
+    records_directory = "/Users/ravindratummuru/Desktop/Trinity/AI_Agent/School_Records"
 
     # Initialize Integration Agent
     openai_api_key = os.environ.get("OPENAI_API_KEY")

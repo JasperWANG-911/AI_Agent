@@ -326,8 +326,8 @@ Please answer the query based on these results."""
 
 
 openai_api_key = os.environ.get("OPENAI_API_KEY")
-image_path = "/Users/wangyinghao/Desktop/AI_Agent/test_images/webcam_demo.PNG"
-slide_image_folder_path = r"ppts_and_images/slide_images"
+image_path = "/Users/ravindratummuru/Desktop/sritejtummuru/AI_Agent/test_images/webcam_demo.PNG"
+slide_image_folder_path = "/Users/ravindratummuru/Desktop/Trinity/AI_Agent/ppts_and_images"
 
 if __name__ == "__main__":
     # Initialize Agent

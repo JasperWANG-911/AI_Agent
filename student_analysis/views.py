@@ -70,12 +70,16 @@ def process_prompt(request):
 
     integration_agent = StudentFeedbackIntegrationAgent()
 
+    image_paths = os.listdir("/Users/ravindratummuru/Desktop/Trinity/AI_Agent/media/webcam_images")
+    image_paths = ["/Users/ravindratummuru/Desktop/Trinity/AI_Agent/media/webcam_images/" + path for path in
+                   image_paths]
+
 
     response = integration_agent.generate_integrated_feedback(
         prompt_text,
-        '/Users/wangyinghao/Desktop/AI_Agent/media/webcam_images/webcam_capture_2025-03-09T11-32-07-565Z.png',
-        '/Users/wangyinghao/Desktop/AI_Agent/ppts_and_images',
-        '/Users/wangyinghao/Desktop/AI_Agent/School_Records'
+        image_paths,
+        '/Users/ravindratummuru/Desktop/Trinity/AI_Agent/ppts_and_images',
+        '/Users/ravindratummuru/Desktop/Trinity/AI_Agent/School_Records'
     )
     return JsonResponse({
         'success': True,

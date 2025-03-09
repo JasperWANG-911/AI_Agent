@@ -14,16 +14,19 @@
     </header>
 
     <div class="container">
-        <!-- Webcam Section -->
-        <div class="webcam-container">
-            <h2>Student Monitoring</h2>
-            <video id="webcam" autoplay playsinline></video>
-            <canvas id="canvas" style="display: none;"></canvas>
-        </div>
+        <!-- Webcam and Snapshot Section -->
+        <div class="media-container">
+            <!-- Webcam Section -->
+            <div class="webcam-container">
+                <h2>Student Monitoring</h2>
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+            </div>
 
-        <div class="snapshot-container">
-            <h2>Current Snapshot:</h2>
-            <img id="snapshot" alt="Latest student snapshot will appear here">
+            <div class="snapshot-container">
+                <h2>Current Snapshot:</h2>
+                <img id="snapshot" alt="Latest student snapshot will appear here">
+            </div>
         </div>
 
         <div class="button-container">
@@ -45,15 +48,15 @@
             <form id="teacher-prompt-form">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label for="teacher-prompt">Enter notes or prompts about the student:</label>
+                    <label for="teacher-prompt">Enter prompt about a student:</label>
                     <textarea id="teacher-prompt" name="teacher_prompt" rows="4" placeholder="Type your observations or assessment notes here..."></textarea>
                 </div>
-                <button type="submit" id="submit-prompt-btn">Submit Notes</button>
+                <button type="submit" id="submit-prompt-btn">Submit Prompt</button>
             </form>
             <div id="prompt-status" class="status-message"></div>
 
             <!-- Server Response Display -->
-            <div id="server-response" class="server-response" style="display: none;"></div>
+            <span id="server-response" class="server-response" style="display: none;"></span>
         </div>
     </div>
 

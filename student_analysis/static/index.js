@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const captureStatus = document.getElementById('capture-status');
     const serverResponse = document.getElementById('server-response'); // Add reference to new element
 
+    // Import the marked library for Markdown parsing
+    const markedScript = document.createElement('script');
+    markedScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js';
+    document.head.appendChild(markedScript);
+
     const constraints = {
         video: true,
         audio: false
@@ -82,9 +87,17 @@ document.addEventListener('DOMContentLoaded', function() {
             promptStatus.textContent = 'Notes submitted successfully!';
             promptStatus.className = 'status-message active';
 
-            // Display the server response
+            // Display the server response with markdown parsing
             if (data.response) {
-                serverResponse.textContent = data.response;
+                // Check if marked is loaded, otherwise use a fallback
+                if (typeof marked !== 'undefined') {
+                    console.log(marked.parse(data.response))
+                    serverResponse.innerHTML = marked.parse(data.response);
+                } else {
+                    // Fallback if marked is not loaded
+                    serverResponse.innerHTML = data.response.replace(/\n/g, '<br>');
+                    console.warn('Marked library not loaded, using simple line break conversion');
+                }
                 serverResponse.style.display = 'block';
             }
 
