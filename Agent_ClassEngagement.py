@@ -327,7 +327,7 @@ Please answer the query based on these results."""
 
 openai_api_key = os.environ.get("OPENAI_API_KEY")
 image_path = "/Users/wangyinghao/Desktop/AI_Agent/test_images/webcam_demo.PNG"
-slide_image_path = r"ppts_and_images/image.png"
+slide_image_folder_path = r"ppts_and_images/slide_images"
 
 if __name__ == "__main__":
     # Initialize Agent
@@ -338,14 +338,14 @@ if __name__ == "__main__":
     
     # Get image path
     image_path = image_path
-    slide_image_path = slide_image_path
+    slide_image_path = slide_image_folder_path
     
     print("\n" + "="*50)
     print("Starting analysis...")
     print("="*50 + "\n")
     
     # Process query
-    response = agent.process_query(query, image_path, slide_image_path)
+    response = agent.process_query(query, image_path, slide_image_folder_path)
     
     print("\n" + "="*50)
     print("Analysis results:")

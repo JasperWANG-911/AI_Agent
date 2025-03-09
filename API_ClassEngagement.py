@@ -200,15 +200,19 @@ def match_face_with_name(api_key: str, image_path: str, students_folder: str = "
 
     return response
 
-def describe_slide(api_key, image_path, predicted_subject = "Chemistry") -> str:
+def describe_slide(api_key, image_path_folder, predicted_subject = "Chemistry") -> str:
     """Classifies a slide (image) into a subject, and uses this to aid a description."""
-    
-    try:
-        with open(image_path, "rb") as f:
-            input_img_bytes = f.read()
-        input_b64_str = base64.b64encode(input_img_bytes).decode("utf-8")
-    except Exception as e:
-        return f"Error reading input image: {e}"
+    image_inputs = []
+    for image_path_rel in os.listdir(image_path_folder):
+        image_path = os.path.join(image_path_folder, image_path_rel)
+        try:
+            with open(image_path, "rb") as f:
+                input_img_bytes = f.read()
+            input_b64_str = base64.b64encode(input_img_bytes).decode("utf-8")
+        except Exception as e:
+            return f"Error reading input image: {e}"
+        image_inputs.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{input_b64_str}"}})
+        
 
     openai.api_key = api_key
     client = OpenAI(api_key="sk-xxxxx")
@@ -222,9 +226,7 @@ def describe_slide(api_key, image_path, predicted_subject = "Chemistry") -> str:
     # API call messages
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{input_b64_str}"}},
-        ]}
+        {"role": "user", "content": image_inputs},
     ]
 
     # API call
@@ -240,16 +242,24 @@ def describe_slide(api_key, image_path, predicted_subject = "Chemistry") -> str:
 
     return response
 
-def classify_slide(image_path, model_name ="subject_classifier.pkl") -> str:
-    """Classifies a slide (image) into a subject."""
+def classify_slide(image_path_folder, model_name ="subject_classifier.pkl") -> str:
+    """Classifies a folder of slides (images) into a subject."""
     # Load trained model
     model = joblib.load(model_name)
     extracted_text = None
+    all_extracted_text = ""
     # Extract text from slide
     if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
-        extracted_text = extract_text_from_image(image_path)
+        extraction_text_function = extract_text_from_image
     else:
-        extracted_text = extract_text_from_image_easy(image_path)
+        extracted_text_function = extract_text_from_image_easy
+    for image_path_rel in os.listdir(image_path_folder):
+        image_path = os.path.join(image_path_folder, image_path_rel)
+        extracted_text = extracted_text_function(image_path)
+        all_extracted_text += " " + extracted_text
     # Predict subject
-    predicted_subject = model.predict([extracted_text])[0]
+    if not all_extracted_text:
+        print("No text was extracted from the images. This either means that there are no images in the folder or none of the images had any text.")
+        return "No text could be extracted from the slides."
+    predicted_subject = model.predict([all_extracted_text])[0]
     return predicted_subject
