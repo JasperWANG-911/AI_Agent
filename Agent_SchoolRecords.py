@@ -17,7 +17,7 @@ class DynamicSchoolRecordsAgent:
     """
     
     def __init__(self, openai_api_key):
-        """Initialize the agent with necessary API keys"""
+        """Initialize the agent with API keys"""
         self.openai_api_key = openai_api_key
         self.openai_client = OpenAI(api_key=openai_api_key)
         self.records_directory = None
@@ -72,18 +72,9 @@ Transform this query to focus specifically on analyzing information available in
             return query
     
     def design_analysis_plan(self, query, directory_path):
-        """
-        Design a plan for analyzing school records based on the query
-        
-        Args:
-            query (str): The transformed user query
-            directory_path (str): Path to the directory containing school records
-            
-        Returns:
-            dict: Analysis plan with steps to execute
-        """
+        """Design a plan for analyzing school records based on the query"""
         print("Designing analysis plan...")
-        
+
         system_prompt = """You are a school records analysis assistant that helps analyze student academic performance.
 
 You have access to the following functions:
@@ -91,15 +82,21 @@ You have access to the following functions:
 2. "excel_to_csv": Convert Excel files to CSV format for analysis
 3. "analyze_student_performance": Analyze performance metrics from student records
 
-Based on the user's query, design a plan for how to best retrieve and analyze the necessary school records data.
+IMPORTANT NOTES:
+- Files with generic names (like "student_grades.csv") often contain data for ALL students and should always be analyzed when looking for information about a specific student.
+- When the query is about a specific student's performance, you should always include the filter_school_records step to find relevant files, including general grade records.
+
+IMPORTANT: First determine if the query actually requires school records analysis.
+If the query has nothing to do with student academic performance or school data, 
+return a plan with an empty steps list and set "requires_records_analysis" to false.
 
 Return a JSON object with the following structure:
 {
+  "requires_records_analysis": boolean, // true if query needs school records, false otherwise
   "plan": [
     {"step": "function_name", "description": "Explanation of what this step will achieve"}
   ],
-  "expected_insights": ["Insight 1", "Insight 2", "Insight 3"],
-  "explanation": "Overall explanation of the analysis approach"
+  "explanation": "Overall explanation of the analysis approach or why no analysis is needed"
 }
 
 Focus on creating an efficient, targeted analysis that directly addresses the user's query."""
@@ -136,19 +133,18 @@ Please design an analysis plan that efficiently answers this query using the ava
                 "explanation": "Basic analysis of relevant school records."
             }
     
+
+
     def execute_plan(self, plan, query, directory_path):
-        """
-        Execute the analysis plan
-        
-        Args:
-            plan (dict): The analysis plan to execute
-            query (str): The user's query
-            directory_path (str): Path to the directory with school records
-            
-        Returns:
-            dict: Results of the analysis
-        """
-        print("Executing analysis plan...")
+        """Execute the analysis plan"""
+        # Check if records analysis is actually required
+        if not plan.get("requires_records_analysis", True):
+            print("Analysis determined that this query does not require school records analysis")
+            return {
+                "query": query,
+                "requires_records_analysis": False,
+                "explanation": plan.get("explanation", "This query does not require school records analysis.")
+            }
         
         # Set the records directory
         self.records_directory = directory_path
@@ -209,16 +205,7 @@ Please design an analysis plan that efficiently answers this query using the ava
         return results
     
     def consolidate_analyses(self, query, results):
-        """
-        Consolidate analysis results from multiple files into a single coherent response
-        
-        Args:
-            query (str): The user's query
-            results (dict): Results from executing the analysis plan
-            
-        Returns:
-            dict: Consolidated analysis results
-        """
+        """Consolidate analysis results from multiple files into a single coherent response"""
         print(" Consolidating analysis results...")
         
         # Prepare consolidated data structure
@@ -243,20 +230,18 @@ Please design an analysis plan that efficiently answers this query using the ava
                                 consolidated["student_data"][student_id][key] = value
         
         return consolidated
-    
+
     def generate_response(self, query, consolidated_results, original_query=None):
         """
         Generate a comprehensive response based on analysis results
-        
-        Args:
-            query (str): Transformed user query
-            consolidated_results (dict): Consolidated analysis results
-            original_query (str): Original user query
-            
-        Returns:
-            str: Generated response
         """
-        print("✍️ Generating response...")
+
+            # Check if records analysis was required
+        if isinstance(consolidated_results, dict) and not consolidated_results.get("requires_records_analysis", True):
+            explanation = consolidated_results.get("explanation", "")
+            return f"I've determined that this query doesn't require analysis of school records. {explanation}"
+
+        print("Generating response...")
         
         system_prompt = """You are an expert educational analyst specializing in interpreting student performance data.
 
@@ -298,16 +283,7 @@ Please provide a comprehensive response that addresses the query based on these 
             return f"Error: {str(e)}"
     
     def process_query(self, query, directory_path):
-        """
-        Process a user query about student performance using school records
-        
-        Args:
-            query (str): User query
-            directory_path (str): Path to directory containing school records
-            
-        Returns:
-            str: Generated response
-        """
+        """Process a user query about student performance using school records"""
         print(f"\n Processing query: '{query}'")
         print(f" School records directory: {directory_path}")
         
@@ -351,7 +327,7 @@ if __name__ == "__main__":
     agent = DynamicSchoolRecordsAgent(openai_api_key)
     
     # Set school records directory
-    records_directory = "/path/to/school_records"
+    records_directory = "/Users/wangyinghao/Desktop/AI_Agent/School_Records"
     
     # Get user query
     query = input("\nEnter your query (e.g., 'How is Jasper doing in math?'): ")

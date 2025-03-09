@@ -36,12 +36,17 @@ def filter_school_records(directory_path, input_query, api_key=None):
         prompt = f"""
         Analyze the relevance of the file name '{file}' to the following query: '{input_query}'
         
+        IMPORTANT GUIDELINES:
+        1. Files with general names like "student_grades.csv", "class_records.xlsx", or "academic_performance.xlsx" should ALWAYS be considered relevant, as they likely contain data about all students.
+        2. If the query mentions a specific student (e.g., "Liam"), any file containing student data should be considered relevant.
+        3. If the query mentions a specific subject (e.g., "math"), any file containing academic records should be considered relevant.
+        4. When in doubt about whether a file might contain relevant information, include it rather than exclude it.
+        
         Provide a JSON response with the following structure:
         {{
-            "is_relevant": boolean // true if potentially relevant, false if completely unrelated
+            "is_relevant": boolean, // true if potentially relevant, false if completely unrelated
+            "reason": string // brief explanation of why this file is relevant or not
         }}
-        
-        Be strict about relevance. Only keep files that are directly and clearly related to the input query.
         """
         
         try:
