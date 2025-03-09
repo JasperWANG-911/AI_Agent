@@ -73,8 +73,8 @@ def filter_school_records(directory_path, input_query, api_key=None):
     
     return file_list
 
-def analyze_student_performance(csv_file_path, api_key=None):
-    """ Return an analysis of student performance based on the provided CSV file."""
+def analyze_student_performance(csv_file_paths, prompt, api_key=None):
+
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY")
         if api_key is None:
@@ -82,74 +82,97 @@ def analyze_student_performance(csv_file_path, api_key=None):
                 "No API key provided. Please provide an API key or set the OPENAI_API_KEY environment variable.")
 
     client = OpenAI(api_key=api_key)
-    df = pd.read_csv(csv_file_path)
 
-    student_ids = df['Student ID'].unique() if 'Student ID' in df.columns else None
-
-    # Analyze each student individually
-    student_analyses = {}
-
-    for student_id in student_ids:
-        # Filter DataFrame for this student
-        student_df = df[df['Student ID'] == student_id]
-
-        if len(student_df) == 0:
-            continue
-
-        # Convert to string
-        student_csv = student_df.to_csv(index=False)
-
-        # Create prompt for OpenAI
-        prompt = f"""
-        Below is CSV data for a student. Please analyze how well this student is performing based on 
-        their scores, GPA, attendance, and teacher feedback.
-
-        CSV Data:
-        {student_csv}
-        
-        Please provide your analysis as a JSON object with the following structure:
-        {{
-            "name": name,
-            "gpa": gpa,
-            "math_score": math score,
-            "english_score": english score,
-            "science_score": science score,
-            "history_score": history_score,
-            "overall_assessment": "A concise paragraph evaluating overall performance",
-            "strengths": ["strength 1", "strength 2", "strength 3"],
-            "areas_for_improvement": ["area 1", "area 2", "area 3"],
-            "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
-        }}
-        
-        Return ONLY the JSON object, no additional text.
-        """
-
-        # Call OpenAI API
+    # Load and combine data from all files
+    combined_data = []
+    for file_path in csv_file_paths:
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",  # Use an appropriate model
-                messages=[
-                    {"role": "system",
-                     "content": "You are an experienced educational analyst tasked with evaluating student performance data."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.5,
-                max_tokens=600
-            )
-
-            analysis_json = response.choices[0].message.content
-            analysis_dict = json.loads(analysis_json)
-
-
-            # Combine with student info
-            student_analyses[student_id] = analysis_dict
-
-            print(f"Completed analysis for student {student_id}")
-
+            df = pd.read_csv(file_path)
+            combined_data.append(df)
         except Exception as e:
-            print(f"Error analyzing student {student_id}: {str(e)}")
-            student_analyses[student_id] = f"Error: {str(e)}"
+            print(f"Error reading {file_path}: {str(e)}")
 
-    return student_analyses
+    # If no valid files were provided, return an error
+    if not combined_data:
+        return {"error": "No valid CSV files were provided"}
+
+    # Combine all data frames
+    combined_df = pd.concat(combined_data, ignore_index=True)
+
+    # Get the student ID from the data
+    if 'Student ID' in combined_df.columns and not combined_df['Student ID'].empty:
+        student_id = combined_df['Student ID'].iloc[0]
+    else:
+        student_id = "unknown"
+
+    # Convert to string for inclusion in the prompt
+    student_csv = combined_df.to_csv(index=False)
+
+    # If custom prompt is not provided, use a default one
+
+    extended_prompt = f"""
+    {prompt}
+
+    CSV Data:
+    {student_csv}
+    
+    Please provide your analysis as a JSON object with the following structure:
+    {{
+        "name": "student name",
+        "gpa": gpa value,
+        "math_score": math score,
+        "english_score": english score,
+        "science_score": science score,
+        "history_score": history score,
+        "overall_assessment": "A concise paragraph evaluating overall performance",
+        "strengths": ["strength 1", "strength 2", "strength 3"],
+        "areas_for_improvement": ["area 1", "area 2", "area 3"],
+        "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+    }}
+    
+    Return ONLY the JSON object, no additional text.
+    """
+
+
+    # Call OpenAI API
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # Use an appropriate model
+            messages=[
+                {"role": "system",
+                 "content": "You are an experienced educational analyst tasked with evaluating student performance data."},
+                {"role": "user", "content": extended_prompt}
+            ],
+            temperature=0.5,
+            max_tokens=600
+        )
+
+        analysis_json = response.choices[0].message.content
+
+        # Try to parse the JSON response
+        try:
+            analysis_dict = json.loads(analysis_json)
+        except json.JSONDecodeError:
+            # If JSON parsing fails, try to extract JSON from the response
+            import re
+            json_match = re.search(r'({.*})', analysis_json, re.DOTALL)
+            if json_match:
+                analysis_dict = json.loads(json_match.group(1))
+            else:
+                return {
+                    "error": "Failed to parse JSON from the API response",
+                    "raw_response": analysis_json
+                }
+
+        # Add student ID to the analysis
+        analysis_dict["student_id"] = student_id
+
+        print(f"Completed analysis for student {student_id}")
+        return analysis_dict
+
+    except Exception as e:
+        print(f"Error analyzing student data: {str(e)}")
+        return {"error": f"Error: {str(e)}"}
+
 
 
