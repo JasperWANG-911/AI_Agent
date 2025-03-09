@@ -197,18 +197,18 @@ Please design an analysis plan that efficiently answers this query using the ava
                 # Analyze student performance
                 elif function_name == "analyze_student_performance":
                     if "csv_files" not in results or not results["csv_files"]:
-                        print(" No CSV files available for analysis. Make sure excel_to_csv step is included in the plan.")
+                        print(" No CSV files available for analysis.")
                         continue
 
                     for csv_file in results.get("csv_files", []):
-                        # 确保 csv_file 是一个完整的路径，而不是相对路径
                         if not os.path.exists(csv_file):
                             print(f" CSV file not found: {csv_file}")
                             continue
                             
                         try:
-                            analysis = analyze_student_performance(csv_file, self.openai_api_key)
-                            if analysis:  # 只有在分析结果不为空时才添加
+                            # Pass the query to analyze_student_performance
+                            analysis = analyze_student_performance(csv_file, query, self.openai_api_key)
+                            if analysis:
                                 results["analyses"][os.path.basename(csv_file)] = analysis
                         except Exception as e:
                             print(f" Error analyzing {csv_file}: {e}")
