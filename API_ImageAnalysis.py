@@ -26,7 +26,7 @@ import torch.nn.functional as F
 from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
 import joblib
-from ppt_to_text_and_image import extract_text_from_image
+from ppt_to_text_and_image import extract_text_from_image, extract_text_from_image_easy
 
 def call_AOD(image_path):
     """
@@ -243,10 +243,8 @@ def classify_slide(image_path: str, model_name: str ="subject_classifier.pkl") -
     # Extract text from slide
     if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
         extracted_text = extract_text_from_image(image_path)
-    
-    if not extracted_text:
-        return "Could not extract text. Try a clearer image."
-
+    else:
+        extracted_text = extract_text_from_image_easy(image_path)
     # Predict subject
     predicted_subject = model.predict([extracted_text])[0]
     return f"Predicted Subject: {predicted_subject}"
