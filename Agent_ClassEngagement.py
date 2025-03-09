@@ -40,7 +40,7 @@ class DynamicAgent:
             self.emotion_processor = None
             self.emotion_model = None
     
-    def transform_query(self, query, image_path=None):
+    def transform_query(self, query, image_path=None, slide_image_path=None):
         """
         Transform the original query into a form that's suitable for this specific agent
         """
@@ -85,7 +85,7 @@ Transform this query to focus specifically on what can be observed about student
             # Return original query if transformation fails
             return query
     
-    def design_analysis_plan(self, query, image_path):
+    def design_analysis_plan(self, query, image_path, slide_image_path = None):
         """Design analysis plan based on query"""
         system_prompt = """You are a classroom analysis assistant that helps teachers analyze student behavior.
 You can use the following functions:
@@ -95,6 +95,8 @@ You can use the following functions:
 3. "analyze_emotion": Analyze student emotional state
 4. "analyze_body_language": Analyze student body language
 5. "identify_student": Identify student
+6. "describe_slide": Describe the content of the slide
+7. "classify_slide": Classify the slide into a subject
 
 Please return an execution plan in JSON format:
 {
@@ -110,7 +112,7 @@ Note:
 - Do not include any parameter information in the plan, the system will handle parameter passing automatically
 - Only select necessary functions required to complete the task"""
 
-        user_prompt = f"Query: {query}\nImage path: {image_path}\nPlease design an analysis plan."
+        user_prompt = f"Query: {query}\nImage path: {image_path}\nSlide image path: {slide_image_path}\n Please design an analysis plan."
 
         try:
             completion = self.openai_client.chat.completions.create(
@@ -129,7 +131,7 @@ Note:
             print(f"❌ Error designing analysis plan: {e}")
             return {"plan": [], "explanation": f"Error designing analysis plan: {e}"}
     
-    def execute_plan(self, plan, image_path, students_folder="students"):
+    def execute_plan(self, plan, image_path, students_folder="students", slide_image_path = None):
         """Execute analysis plan"""
         print(f"📋 Executing analysis plan...")
         print(f"📝 Plan explanation: {plan.get('explanation', 'No explanation')}")
@@ -137,6 +139,7 @@ Note:
         # Dictionary to store intermediate results
         data = {
             "image_path": image_path,
+            "slide_image_path": slide_image_path,
             "students_folder": students_folder
         }
         
@@ -223,6 +226,17 @@ Note:
                     )
                     data["identity"] = identity
                 
+                elif function_name == "classify_slide":
+                    print("📚 Classifying slide...")
+                    subject = classify_slide(slide_image_path)
+                    data["slide_subject"] = subject
+                
+                elif function_name == "describe_slide":
+                    print("📝 Describing slide content...")
+                    subject_classification = classify_slide(slide_image_path)
+                    description = describe_slide(self.openai_api_key, slide_image_path, subject_classification)
+                    data["slide_description"] = description
+                
                 else:
                     print(f"⚠️ Unknown function: {function_name}")
             
@@ -239,7 +253,8 @@ Note:
         system_prompt = """You are a professional education analyst who answers user queries based on the provided analysis data.
 The data may include:
 - detection_data: Detected student data
-- cropped_images: Paths to cropped student images
+- cropped_student_images: Paths to cropped student images
+- slide_images: Paths to images corresponding to lesson slides
 - emotion_data: Emotion analysis results
 - body_language: Body language analysis
 - identity: Student identity
@@ -277,7 +292,7 @@ Please answer the query based on these results."""
             print(f"❌ Error generating response: {e}")
             return f"Error generating response: {e}"
     
-    def process_query(self, query, image_path, students_folder="students"):
+    def process_query(self, query, image_path, slide_image_path = None, students_folder="students"):
         """Main function to process user query"""
         print(f"\n🔍 Processing query: '{query}'")
         print(f"📸 Image path: {image_path}")
@@ -290,10 +305,10 @@ Please answer the query based on these results."""
             original_query = query
             
             # 1. Transform the query
-            transformed_query = self.transform_query(query, image_path)
+            transformed_query = self.transform_query(query, image_path, slide_image_path)
             
             # 2. Design analysis plan based on transformed query
-            plan = self.design_analysis_plan(transformed_query, image_path)
+            plan = self.design_analysis_plan(transformed_query, image_path, slide_image_path)
             
             # 3. Execute plan
             results = self.execute_plan(plan, image_path, students_folder)
@@ -312,6 +327,7 @@ Please answer the query based on these results."""
 
 openai_api_key = os.environ.get("OPENAI_API_KEY")
 image_path = "/Users/wangyinghao/Desktop/AI_Agent/test_images/webcam_demo.PNG"
+slide_image_path = r"ppts_and_images/image.png"
 
 if __name__ == "__main__":
     # Initialize Agent
@@ -322,13 +338,14 @@ if __name__ == "__main__":
     
     # Get image path
     image_path = image_path
+    slide_image_path = slide_image_path
     
     print("\n" + "="*50)
     print("Starting analysis...")
     print("="*50 + "\n")
     
     # Process query
-    response = agent.process_query(query, image_path)
+    response = agent.process_query(query, image_path, slide_image_path)
     
     print("\n" + "="*50)
     print("Analysis results:")

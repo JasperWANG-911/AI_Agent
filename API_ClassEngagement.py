@@ -7,8 +7,7 @@ import os
 import torch.nn.functional as F
 from openai import OpenAI
 import joblib
-from ppt_to_text_and_image import extract_text_from_image
-import pytesseract
+from ppt_to_text_and_image import extract_text_from_image, extract_text_from_image_easy
 
 def call_AOD(image_path):
     """
@@ -24,6 +23,31 @@ def call_AOD(image_path):
         response = requests.post(AOD_url, files=files, data=data, headers=headers)
     
     return response
+
+def modified_student_image_profile(detection_data, input_image_path, output_folder="individual_student_profile"):
+    """Crop student images and return path list"""
+    os.makedirs(output_folder, exist_ok=True)
+    image = Image.open(input_image_path)
+    cropped_paths = []
+    
+    # Process nested structure returned by API
+    if isinstance(detection_data, dict) and "data" in detection_data:
+        if isinstance(detection_data["data"], list) and len(detection_data["data"]) > 0:
+            detection_data = detection_data["data"][0]
+    
+    # Loop through detected students
+    for idx, item in enumerate(detection_data):
+        if isinstance(item, dict) and "bounding_box" in item:
+            bbox = item["bounding_box"]
+            cropped_image = image.crop((bbox[0], bbox[1], bbox[2], bbox[3]))
+            if cropped_image.mode != "RGB":
+                cropped_image = cropped_image.convert("RGB")
+            output_path = os.path.join(output_folder, f"profile_{idx}.jpg")
+            cropped_image.save(output_path)
+            print(f"✅ Saved cropped image: {output_path}")
+            cropped_paths.append(output_path)
+    
+    return cropped_paths
 
 def individual_student_image_profile(json_data, input_image_path, output_folder="individual_student_profile"):
     """
@@ -176,7 +200,7 @@ def match_face_with_name(api_key: str, image_path: str, students_folder: str = "
 
     return response
 
-def describe_slide(api_key: str, image_path: str, predicted_subject: str = "Chemistry") -> str:
+def describe_slide(api_key, image_path, predicted_subject = "Chemistry") -> str:
     """Classifies a slide (image) into a subject, and uses this to aid a description."""
     
     try:
@@ -216,7 +240,7 @@ def describe_slide(api_key: str, image_path: str, predicted_subject: str = "Chem
 
     return response
 
-def classify_slide(image_path: str, model_name: str ="subject_classifier.pkl") -> str:
+def classify_slide(image_path, model_name ="subject_classifier.pkl") -> str:
     """Classifies a slide (image) into a subject."""
     # Load trained model
     model = joblib.load(model_name)
@@ -224,10 +248,8 @@ def classify_slide(image_path: str, model_name: str ="subject_classifier.pkl") -
     # Extract text from slide
     if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
         extracted_text = extract_text_from_image(image_path)
-    
-    if not extracted_text:
-        return "Could not extract text. Try a clearer image."
-
+    else:
+        extracted_text = extract_text_from_image_easy(image_path)
     # Predict subject
     predicted_subject = model.predict([extracted_text])[0]
-    return f"Predicted Subject: {predicted_subject}"
+    return predicted_subject
