@@ -1,59 +1,63 @@
+import pandas as pd
 import os
 import json
-import pandas as pd
+import logging
 from openai import OpenAI
+from typing import Dict, Any, List, Optional
 
-# Import functions from API_SchoolRecords
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Import predefined functions
 from API_SchoolRecords import (
     excel_to_csv,
     filter_school_records,
     analyze_student_performance
 )
 
-
-class DynamicSchoolRecordsAgent:
+class DynamicSchoolAgent:
     """
-    Dynamic agent for analyzing school records and responding to queries about student performance.
-    The agent dynamically determines which analysis functions to use based on the query.
+    Dynamic school records analysis agent that selects analyses to perform based on user queries.
+    Uses GPT-4 to determine the appropriate API calls and generates a textual report.
     """
-
-    def __init__(self, openai_api_key):
-        """Initialize the agent with API keys"""
-        self.openai_api_key = openai_api_key
-        self.openai_client = OpenAI(api_key=openai_api_key)
-        self.records_directory = None
-        self.loaded_data = {}
-        print("School Records Analysis Agent initialized")
-
-    def transform_query(self, query):
+    
+    def __init__(self, openai_api_key=None):
+        """Initialize Agent with OpenAI API key"""
+        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+        if not self.openai_api_key:
+            raise ValueError("OpenAI API key is required. Set it via the openai_api_key parameter or OPENAI_API_KEY environment variable.")
+        
+        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        logger.info("✅ DynamicSchoolAgent initialized")
+    
+    def transform_query(self, query: str) -> str:
         """
-        Transform input query into specific school records-related queries
+        Transform user query to focus on school records analysis
         """
-        print(f"Transforming query: '{query}'")
-
+        print(f"🔄 Transforming original query: '{query}'")
+        
         system_prompt = """You are a query transformation assistant for a school records analysis system.
 
-Your task is to transform general academic performance questions into specific queries about academic records and performance.
+Your task is to transform general academic performance questions into specific queries about student records.
 
 For example:
-- "How is Lisa doing in maths at school?" → "What do Lisa's academic records show about her math performance?"
-- "Is John good at science?" → "What do John's science grades and teacher evaluations indicate about his performance?"
-- "What's Mary's academic performance like?" → "Summarize Mary's academic performance metrics from available school records."
-- "Which students are struggling in English?" → "Identify students with below-average performance in English based on grades and assessments."
+- "How is Lisa doing in class?" → "How is Lisa performing in her recent academic records?"
+- "Is John good at science?" → "What are John's performance trends in science subjects?"
+- "What's Mary's attendance like?" → "What are Mary's attendance records showing?"
 
 Important rules:
-1. Focus the query on information available in school records (grades, attendance, teacher comments, etc.)
-2. Preserve student names mentioned in the original query
-3. If a specific subject is mentioned, maintain that focus
-4. Make the query specific and actionable for data analysis
+1. Always transform queries to focus on what can be found in school records
+2. Focus on academic performance, grades, attendance, and trends
+3. Preserve student names and subjects mentioned in the original query
+4. Make it clear the analysis is based on school records
 5. Keep the transformed query concise and clear
-6. Ensure the query is answerable from quantitative and qualitative academic data
 
-Return ONLY the transformed query without any explanation or additional text."""
+Return only the transformed query without any explanation or additional text."""
 
-        user_prompt = f"""Original query: {query}
+        user_prompt = f"""Original query: {query}   
 
-Transform this query to focus specifically on analyzing information available in school records."""
+Transform this query to focus specifically on what can be analyzed from school records."""
 
         try:
             completion = self.openai_client.chat.completions.create(
@@ -63,50 +67,46 @@ Transform this query to focus specifically on analyzing information available in
                     {"role": "user", "content": user_prompt}
                 ]
             )
-
+            
             transformed_query = completion.choices[0].message.content.strip()
-            print(f"Transformed query: '{transformed_query}'")
+            print(f"✅ Transformed query: '{transformed_query}'")
             return transformed_query
         except Exception as e:
-            print(f"Error: {e}")
+            logger.error(f"❌ Error transforming query: {e}")
             # Return original query if transformation fails
             return query
+    
+    def design_analysis_plan(self, query: str, records_directory: str) -> Dict[str, Any]:
+        """
+        Design an analysis plan based on the query
+        """
+        print(f"🔍 Designing analysis plan for: '{query}'")
+        
+        system_prompt = """You are a school records analysis assistant that helps analyze student performance.
+You can use the following functions:
 
-    def design_analysis_plan(self, query, directory_path):
-        """Design a plan for analyzing school records based on the query"""
-        print("Designing analysis plan...")
-
-        system_prompt = """You are a school records analysis assistant that helps analyze student academic performance.
-
-You have access to the following functions:
-1. "filter_school_records": Find relevant files in a directory based on the query
+1. "filter_school_records": Find relevant files based on the query
 2. "excel_to_csv": Convert Excel files to CSV format for analysis
-3. "analyze_student_performance": Analyze performance metrics from student records
+3. "analyze_student_performance": Analyze student data from CSV files
 
-IMPORTANT NOTES:
-- Files with generic names (like "student_grades.csv") often contain data for ALL students and should always be analyzed when looking for information about a specific student.
-- When the query is about a specific student's performance, you should always include the filter_school_records step to find relevant files, including general grade records.
-
-IMPORTANT: First determine if the query actually requires school records analysis.
-If the query has nothing to do with student academic performance or school data, 
-return a plan with an empty steps list and set "requires_records_analysis" to false.
-
-Return a JSON object with the following structure:
+Please return an execution plan in JSON format:
 {
-  "requires_records_analysis": boolean, // true if query needs school records, false otherwise
   "plan": [
-    {"step": "function_name", "description": "Explanation of what this step will achieve"}
+    {"function": "function_name", "description": "purpose of this step"},
+    {"function": "another_function", "description": "purpose of this step"}
   ],
-  "explanation": "Overall explanation of the analysis approach or why no analysis is needed"
+  "student_name": "Name of student in query or 'ALL'",
+  "subject": "Subject mentioned in query or 'ALL'",
+  "time_period": "Time period mentioned (recent, last semester, etc.) or 'ALL'",
+  "explanation": "explanation of the execution plan"
 }
 
-Focus on creating an efficient, targeted analysis that directly addresses the user's query."""
+Note:
+- Functions have dependencies: always filter files first, then convert Excel to CSV, then analyze
+- Only select necessary functions required to complete the task
+- Be sure to extract the student name, subject, and time period from the query"""
 
-        user_prompt = f"""Query: {query}
-
-Records directory: {directory_path}
-
-Please design an analysis plan that efficiently answers this query using the available school records."""
+        user_prompt = f"Query: {query}\nRecords directory: {records_directory}\nPlease design an analysis plan."
 
         try:
             completion = self.openai_client.chat.completions.create(
@@ -117,174 +117,156 @@ Please design an analysis plan that efficiently answers this query using the ava
                     {"role": "user", "content": user_prompt}
                 ]
             )
-
+            
             plan = json.loads(completion.choices[0].message.content)
-            print(f"Analysis plan created:")
-            print(f"Explanation: {plan.get('explanation', 'No explanation provided')}")
+            print(f"📝 Analysis plan: {json.dumps(plan, indent=2, ensure_ascii=False)}")
             return plan
         except Exception as e:
-            print(f"Error designing analysis plan: {e}")
-            # Return a basic plan if the advanced planning fails
+            logger.error(f"❌ Error designing analysis plan: {e}")
             return {
-                "requires_records_analysis": True,
                 "plan": [
-                    {"step": "filter_school_records", "description": "Find relevant files"},
-                    {"step": "excel_to_csv", "description": "Convert files to CSV format"},
-                    {"step": "analyze_student_performance", "description": "Analyze student data"}
+                    {"function": "filter_school_records", "description": "Find relevant files"},
+                    {"function": "excel_to_csv", "description": "Convert Excel files to CSV"},
+                    {"function": "analyze_student_performance", "description": "Analyze student data"}
                 ],
-                "explanation": "Basic analysis of relevant school records."
+                "student_name": "ALL",
+                "subject": "ALL",
+                "time_period": "ALL",
+                "explanation": f"Default plan due to error: {e}"
             }
-
-    def execute_plan(self, plan, query, directory_path):
-        """Execute the analysis plan"""
-        # Check if records analysis is actually required
-        if not plan.get("requires_records_analysis", True):
-            print("Analysis determined that this query does not require school records analysis")
-            return {
-                "query": query,
-                "requires_records_analysis": False,
-                "explanation": plan.get("explanation", "This query does not require school records analysis.")
-            }
-
-        # Set the records directory
-        self.records_directory = directory_path
-
-        # Store results
-        results = {
+    
+    def execute_plan(self, plan: Dict[str, Any], query: str, records_directory: str) -> Dict[str, Any]:
+        """
+        Execute the analysis plan
+        """
+        print(f"📋 Executing analysis plan...")
+        print(f"📝 Plan explanation: {plan.get('explanation', 'No explanation')}")
+        
+        # Dictionary to store intermediate results
+        data = {
             "query": query,
-            "data": {},
-            "analyses": {},
-            "files_processed": []
+            "records_directory": records_directory,
+            "student_name": plan.get("student_name", "ALL"),
+            "subject": plan.get("subject", "ALL"),
+            "time_period": plan.get("time_period", "ALL"),
+            "relevant_files": [],
+            "converted_files": [],
+            "analysis_results": {},
+            "errors": []
         }
-
+        
         # Track completed steps
         for step_idx, step in enumerate(plan.get("plan", [])):
-            function_name = step.get("step")
+            function_name = step.get("function")
             description = step.get("description", "No description")
-
-            print(f"\nStep {step_idx + 1}/{len(plan.get('plan', []))}: {function_name}")
-            print(f"{description}")
-
+            
+            print(f"\n🔄 Step {step_idx+1}/{len(plan.get('plan', []))}: {function_name}")
+            print(f"📌 {description}")
+            
             try:
-                # Filter school records
+                # Filter relevant files
                 if function_name == "filter_school_records":
-                    relevant_files = filter_school_records(directory_path, query, self.openai_api_key)
-                    results["files_processed"] = relevant_files
-                    print(f" Found {len(relevant_files)} relevant files")
-
+                    print("🔍 Finding relevant school record files...")
+                    relevant_files = filter_school_records(
+                        records_directory, 
+                        query, 
+                        self.openai_api_key
+                    )
+                    data["relevant_files"] = relevant_files
+                    print(f"✅ Found {len(relevant_files)} relevant files")
+                
                 # Convert Excel to CSV
                 elif function_name == "excel_to_csv":
-                    csv_files = []
-                    for file in results.get("files_processed", []):
-                        file_path = os.path.join(directory_path, file) if not os.path.isabs(file) else file
-                        
-                        if os.path.basename(file_path).startswith("~$"):
-                            print(f" Skipping temporary file: {file_path}")
-                            continue
-                            
-                        if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-                            csv_file = file_path.rsplit('.', 1)[0] + '.csv'
-                            success = excel_to_csv(file_path, csv_file)
+                    print("📊 Converting Excel files to CSV...")
+                    if not data["relevant_files"]:
+                        print("⚠️ No relevant files found, skipping conversion")
+                        continue
+                    
+                    for excel_file in data["relevant_files"]:
+                        if excel_file.endswith(('.xlsx', '.xls')):
+                            csv_file = excel_file.rsplit('.', 1)[0] + '.csv'
+                            success = excel_to_csv(excel_file, csv_file)
                             if success:
-                                csv_files.append(csv_file)
-
-                        elif file_path.endswith('.csv'):
-                            csv_files.append(file_path)
-
-                    results["csv_files"] = csv_files
-                    print(f" Prepared {len(csv_files)} CSV files for analysis")
-
+                                data["converted_files"].append(csv_file)
+                    
+                    print(f"✅ Converted {len(data['converted_files'])} Excel files to CSV")
+                
                 # Analyze student performance
                 elif function_name == "analyze_student_performance":
-                    if "csv_files" not in results or not results["csv_files"]:
-                        print(" No CSV files available for analysis.")
+                    print("📈 Analyzing student performance...")
+                    csv_files = data["converted_files"] + [f for f in data["relevant_files"] if f.endswith('.csv')]
+                    
+                    if not csv_files:
+                        print("⚠️ No CSV files available for analysis")
                         continue
-
-                    for csv_file in results.get("csv_files", []):
-                        if not os.path.exists(csv_file):
-                            print(f" CSV file not found: {csv_file}")
-                            continue
-                            
-                        try:
-                            # Pass the query to analyze_student_performance
-                            analysis = analyze_student_performance(csv_file, query, self.openai_api_key)
-                            if analysis:
-                                results["analyses"][os.path.basename(csv_file)] = analysis
-                        except Exception as e:
-                            print(f" Error analyzing {csv_file}: {e}")
-
+                    
+                    for csv_file in csv_files:
+                        print(f"📊 Analyzing: {os.path.basename(csv_file)}")
+                        analysis_results = analyze_student_performance(
+                            csv_file, 
+                            query, 
+                            self.openai_api_key
+                        )
+                        data["analysis_results"][csv_file] = analysis_results
+                    
+                    print(f"✅ Analyzed {len(csv_files)} CSV files")
+                
                 else:
-                    print(f" Unknown function: {function_name}")
-
+                    print(f"⚠️ Unknown function: {function_name}")
+            
             except Exception as e:
-                print(f" Error executing {function_name}: {e}")
-                results[f"{function_name}_error"] = str(e)
-
-        return results
-
-    def consolidate_analyses(self, query, results):
-        """Consolidate analysis results from multiple files into a single coherent response"""
-        print(" Consolidating analysis results...")
-
-        # Prepare consolidated data structure
-        consolidated = {
-            "query": query,
-            "summary": {},
-            "student_data": {},
-            "insights": []
-        }
-
-        # Extract and organize data
-        for filename, analysis in results.get("analyses", {}).items():
-            for student_id, student_data in analysis.items():
-                if isinstance(student_data, dict):
-                    # If student not in consolidated data yet, add them
-                    if student_id not in consolidated["student_data"]:
-                        consolidated["student_data"][student_id] = student_data
-                    else:
-                        # Merge data if student already exists
-                        for key, value in student_data.items():
-                            if key not in consolidated["student_data"][student_id]:
-                                consolidated["student_data"][student_id][key] = value
-
-        return consolidated
-
-    def generate_response(self, query, consolidated_results, original_query=None):
+                error_message = f"Error executing {function_name}: {e}"
+                logger.error(f"❌ {error_message}")
+                data["errors"].append(error_message)
+        
+        return data
+    
+    def generate_report(self, query: str, results: Dict[str, Any], original_query: str = None) -> str:
         """
-        Generate a comprehensive response based on analysis results
+        Generate a natural language report based on analysis results
         """
+        print("✍️ Generating analysis report...")
+        
+        system_prompt = """You are a professional education analyst who creates reports based on student records.
 
-        # Check if records analysis was required
-        if isinstance(consolidated_results, dict) and not consolidated_results.get("requires_records_analysis", True):
-            explanation = consolidated_results.get("explanation", "")
-            return f"I've determined that this query doesn't require analysis of school records. {explanation}"
+Your task is to synthesize the provided analysis data into a clear, concise report that directly answers the user's query.
 
-        print("Generating response...")
-
-        system_prompt = """You are an expert educational analyst specializing in interpreting student performance data.
-
-Generate a comprehensive, well-structured response based on the provided analysis of school records.
-
-Your response should:
-1. Directly address the user's original query
-2. Synthesize information across all analyzed records
-3. Present a balanced view of student performance with specific evidence
-4. Highlight key insights, patterns, and trends
-5. Be organized with clear sections and formatting
-6. Recommend specific, actionable steps where appropriate
-7. Acknowledge any limitations in the available data
-
-Use a professional but accessible tone, and format your response for clarity with headings, bullet points, and paragraphs as appropriate."""
+Important instructions:
+1. Focus on directly answering the query with specific data points
+2. Structure your report in a clear, readable format
+3. Highlight key trends, patterns, and insights
+4. If data is incomplete or missing, acknowledge this honestly
+5. Use a professional but accessible tone, as if writing for parents or teachers
+6. Avoid technical jargon about the data processing methods
+7. Keep your report concise and to the point
+8. Include specific grades, percentages, or metrics when available
+9. Do not mention the analysis process itself unless there were significant errors
+"""
 
         # Include both original and transformed queries if available
         query_info = f"Original query: {original_query}\nTransformed query: {query}" if original_query else f"Query: {query}"
-
+        
+        # Remove file paths and simplify the data structure for GPT
+        simplified_results = {
+            "student_name": results.get("student_name", "ALL"),
+            "subject": results.get("subject", "ALL"),
+            "time_period": results.get("time_period", "ALL"),
+            "file_count": len(results.get("relevant_files", [])),
+            "errors": results.get("errors", []),
+            "analysis_results": {}
+        }
+        
+        # Simplify analysis results
+        for file_path, analysis in results.get("analysis_results", {}).items():
+            file_name = os.path.basename(file_path)
+            simplified_results["analysis_results"][file_name] = analysis
+        
         user_prompt = f"""{query_info}
 
-Analysis Results:
-{json.dumps(consolidated_results, indent=2, ensure_ascii=False)}
+Analysis results:
+{json.dumps(simplified_results, ensure_ascii=False, indent=2)}
 
-Please provide a comprehensive response that addresses the query based on these analysis results."""
+Please generate a concise report answering the query based on these results."""
 
         try:
             completion = self.openai_client.chat.completions.create(
@@ -294,43 +276,43 @@ Please provide a comprehensive response that addresses the query based on these 
                     {"role": "user", "content": user_prompt}
                 ]
             )
-
-            return completion.choices[0].message.content
+            
+            report = completion.choices[0].message.content
+            return report
         except Exception as e:
-            print(f" Error generating response: {e}")
-            return f"Error: {str(e)}"
-
-    def process_query(self, query, directory_path):
-        """Process a user query about student performance using school records"""
-        print(f"\n Processing query: '{query}'")
-        print(f" School records directory: {directory_path}")
-
-        if not os.path.exists(directory_path):
-            return f"Error: Directory does not exist: {directory_path}"
-
+            logger.error(f"❌ Error generating report: {e}")
+            return f"I apologize, but I was unable to generate a report due to an error: {e}"
+    
+    def process_query(self, query: str, records_directory: str = "School_records") -> str:
+        """
+        Main function to process user query about school records
+        """
+        print(f"\n🔍 Processing query: '{query}'")
+        print(f"📁 Records directory: {records_directory}")
+        
+        if not os.path.exists(records_directory):
+            return f"Error: Records directory does not exist: {records_directory}"
+        
         try:
             # Store original query
             original_query = query
-
-            # 1. Transform the query
+            
+            # 1. Transform the query to focus on school records
             transformed_query = self.transform_query(query)
-
-            # 2. Design analysis plan
-            plan = self.design_analysis_plan(transformed_query, directory_path)
-
+            
+            # 2. Design analysis plan based on transformed query
+            plan = self.design_analysis_plan(transformed_query, records_directory)
+            
             # 3. Execute plan
-            results = self.execute_plan(plan, transformed_query, directory_path)
-
-            # 4. Consolidate analyses
-            consolidated_results = self.consolidate_analyses(transformed_query, results)
-
-            # 5. Generate response
-            response = self.generate_response(transformed_query, consolidated_results, original_query)
-
-            return response
+            results = self.execute_plan(plan, transformed_query, records_directory)
+            
+            # 4. Generate report
+            report = self.generate_report(transformed_query, results, original_query)
+            
+            return report
         except Exception as e:
             error_message = f"Error processing query: {str(e)}"
-            print(f"\n {error_message}")
+            logger.error(f"\n❌ {error_message}")
             import traceback
             traceback.print_exc()
             return error_message
@@ -338,26 +320,24 @@ Please provide a comprehensive response that addresses the query based on these 
 
 # Example usage
 if __name__ == "__main__":
-    # Set API key directly
+    # Initialize Agent
     openai_api_key = os.environ.get("OPENAI_API_KEY")
-
-    # Initialize the agent
-    agent = DynamicSchoolRecordsAgent(openai_api_key)
-
-    # Set school records directory
-    records_directory = "/Users/wangyinghao/Desktop/AI_Agent/School_Records"
-
+    agent = DynamicSchoolAgent(openai_api_key)
+    
     # Get user query
-    query = input("\nEnter your query (e.g., 'How is Jasper doing in math?'): ")
-
-    print("\n" + "=" * 50)
-    print("Starting school records analysis...")
-    print("=" * 50 + "\n")
-
+    query = input("\nEnter your query about student performance: ")
+    
+    # Set records directory
+    records_directory = "School_records"
+    
+    print("\n" + "="*50)
+    print("Starting analysis...")
+    print("="*50 + "\n")
+    
     # Process query
     response = agent.process_query(query, records_directory)
-
-    print("\n" + "=" * 50)
+    
+    print("\n" + "="*50)
     print("Analysis results:")
-    print("=" * 50 + "\n")
+    print("="*50 + "\n")
     print(response)

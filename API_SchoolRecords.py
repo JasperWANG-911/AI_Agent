@@ -4,13 +4,16 @@ from openai import OpenAI
 import json
 
 def excel_to_csv(excel_file, csv_file):
+    """
+    Convert Excel file to CSV format
+    """
     if os.path.basename(excel_file).startswith("~$"):
         print(f"Skipping temporary file: {excel_file}")
         return False
     
     print(f"Reading Excel file: {excel_file}")
     try:
-        df = pd.read_excel(excel_file)
+        df = pd.read_excel(excel_file, engine='openpyxl')
         df.to_csv(csv_file, index=False)
         print(f"Conversion successful. CSV file saved at: {csv_file}")
         return True
@@ -130,46 +133,103 @@ def analyze_student_performance(csv_file_path, query, api_key=None):
         
     try:
         df = pd.read_csv(csv_file_path)
-
-        # Check if 'Student ID' column exists
+        
+        # extract student data
         if 'Student ID' not in df.columns:
             print(f"No 'Student ID' column found in {csv_file_path}")
             return {}
-            
-        # Check if 'Name' column exists to filter by student name
-        has_name_column = 'Name' in df.columns
         
-        # Get relevant student IDs
-        if student_name and student_name != "ALL" and has_name_column:
-            # Filter for the specific student by name
-            # Case-insensitive partial match for name
-            matching_students = df[df['Name'].str.lower().str.contains(student_name.lower(), na=False)]
-            if matching_students.empty:
+        has_separate_name_columns = 'First Name' in df.columns and 'Last Name' in df.columns
+        has_combined_name_column = 'Name' in df.columns
+        
+        if student_name and student_name != "ALL":
+            matching_students = None
+            
+            if has_separate_name_columns:
+
+                name_parts = student_name.split()
+                if len(name_parts) >= 2:
+                    first_name = name_parts[0]
+                    last_name = name_parts[-1]
+                    
+                    matching_students = df[
+                        (df['First Name'].str.lower() == first_name.lower()) & 
+                        (df['Last Name'].str.lower() == last_name.lower())
+                    ]
+                    
+                    if matching_students.empty:
+                        matching_students = df[
+                            (df['First Name'].str.lower().str.contains(first_name.lower(), na=False)) |
+                            (df['Last Name'].str.lower().str.contains(last_name.lower(), na=False))
+                        ]
+                else:
+
+                    matching_students = df[
+                        df['First Name'].str.lower().str.contains(student_name.lower(), na=False) |
+                        df['Last Name'].str.lower().str.contains(student_name.lower(), na=False)
+                    ]
+            
+            elif has_combined_name_column:
+
+                matching_students = df[df['Name'].str.lower().str.contains(student_name.lower(), na=False)]
+            
+            if matching_students is None or matching_students.empty:
                 print(f"No student named '{student_name}' found in {csv_file_path}")
                 return {}
+                
             student_ids = matching_students['Student ID'].unique()
             print(f"Found {len(student_ids)} student ID(s) matching '{student_name}'")
         else:
-            # If no specific student or no name column, use all students
-            student_ids = df['Student ID'].unique()
             
-        if len(student_ids) == 0:
-            print(f"No student IDs found in {csv_file_path}")
-            return {}
-
-        # Analyze each student individually
+            student_ids = df['Student ID'].unique()
+        
+        # Analyze student data
         student_analyses = {}
-
+        
         for student_id in student_ids:
-            # Filter DataFrame for this student
+            # Filter data for the student
             student_df = df[df['Student ID'] == student_id]
-
+            
             if len(student_df) == 0:
                 continue
-
-            # Continue with your existing analysis for each student...
-            # [rest of your analysis code remains the same]
             
+            student_info = {}
+            
+            # get student name
+            if has_separate_name_columns:
+                student_info['name'] = f"{student_df['First Name'].iloc[0]} {student_df['Last Name'].iloc[0]}"
+            elif has_combined_name_column:
+                student_info['name'] = student_df['Name'].iloc[0]
+            else:
+                student_info['name'] = f"Student ID: {student_id}"
+            
+            # add student ID
+            student_info['student_id'] = student_id
+            
+            # add GPA
+            if 'GPA' in student_df.columns:
+                student_info['gpa'] = float(student_df['GPA'].iloc[0])
+            
+            # add scores
+            student_info['scores'] = {}
+            for subject in ['Math', 'English', 'Science', 'History']:
+                score_col = f"{subject} Score"
+                if score_col in student_df.columns:
+                    student_info['scores'][subject.lower()] = int(student_df[score_col].iloc[0])
+            
+            # add attendance rate
+            if 'Attendance Rate' in student_df.columns:
+                student_info['attendance'] = float(student_df['Attendance Rate'].iloc[0])
+            
+            # add teacher feedback
+            student_info['feedback'] = {}
+            for subject in ['Math', 'English', 'Science', 'History']:
+                feedback_col = f"{subject} Teacher Feedback"
+                if feedback_col in student_df.columns:
+                    student_info['feedback'][subject.lower()] = student_df[feedback_col].iloc[0]
+            
+            student_analyses[student_id] = student_info
+        
         return student_analyses
     except Exception as e:
         print(f"Error reading {csv_file_path}: {str(e)}")
