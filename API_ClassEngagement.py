@@ -1,29 +1,10 @@
-import ast
-import time
 import json
-import torch
 from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
-import cv2
-from segment_anything import sam_model_registry, SamPredictor
-import warnings
 import requests
-import time
-import torch
-import matplotlib.pyplot as plt
-import os
-from PIL import Image
-import torch
-import torch.nn.functional as F
 import base64
 import openai
 import os
-import glob
-from PIL import Image
-import torch
 import torch.nn.functional as F
-from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
 import joblib
 from ppt_to_text_and_image import extract_text_from_image, extract_text_from_image_easy
@@ -33,7 +14,6 @@ def call_AOD(image_path):
     Use the Agentic Object Detection API to detect objects(students) in an image, and return bbox
     """
     
-    # 正确的 API 端点，注意 'va.' 部分
     AOD_url = "https://api.va.landing.ai/v1/tools/agentic-object-detection"
     headers = {"Authorization": "Basic ejRkbG43a2RsaGxndnF5ZWdpbGp1Om55S1ZoWVMydlJ6QkJxSGp5Z2plQ3ZkeG42a1RmNVhi"}
     

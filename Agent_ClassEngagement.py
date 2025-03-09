@@ -8,7 +8,7 @@ from transformers import AutoProcessor, AutoModelForImageClassification
 from openai import OpenAI
 
 # Import predefined functions
-from API_ImageAnalysis import (
+from API_ClassEngagement import (
     call_AOD, 
     emotion_analysis, 
     analyze_body_language, 
@@ -325,7 +325,7 @@ Please answer the query based on these results."""
             return error_message
 
 
-openai_api_key = "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"
+openai_api_key = os.environ.get("OPENAI_API_KEY")
 image_path = "/Users/wangyinghao/Desktop/AI_Agent/test_images/webcam_demo.PNG"
 slide_image_path = r"ppts_and_images/image.png"
 
