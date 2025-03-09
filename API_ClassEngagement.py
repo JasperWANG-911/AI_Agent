@@ -250,7 +250,7 @@ def classify_slide(image_path_folder, model_name ="subject_classifier.pkl") -> s
     all_extracted_text = ""
     # Extract text from slide
     if os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
-        extraction_text_function = extract_text_from_image
+        extracted_text_function = extract_text_from_image
     else:
         extracted_text_function = extract_text_from_image_easy
     for image_path_rel in os.listdir(image_path_folder):
