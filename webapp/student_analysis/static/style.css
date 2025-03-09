@@ -5,6 +5,8 @@
     --primary-green: #34a853;
     --light-green: #e6f4ea;
     --dark-green: #137333;
+    --primary-red: #e74c3c;
+    --dark-red: #c0392b;
     --gray-bg: #f8f9fa;
     --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
@@ -19,7 +21,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
     padding: 20px;
 }
@@ -27,135 +29,25 @@ body {
 header {
     background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
     color: white;
-    padding: 30px 0;
+    padding: 20px 0;
     text-align: center;
     border-radius: 0 0 10px 10px;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     box-shadow: var(--card-shadow);
 }
 
-h1 {
-    margin: 0;
+h1, h2 {
+    margin-top: 0;
     font-weight: 500;
-}
-
-.student-card {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: var(--card-shadow);
-    margin-bottom: 25px;
-    overflow: hidden;
-    transition: transform 0.2s;
-}
-
-.student-card:hover {
-    transform: translateY(-5px);
-}
-
-.student-header {
-    background-color: var(--primary-blue);
-    color: white;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.student-header h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 500;
-}
-
-.student-content {
-    padding: 20px;
-}
-
-.scores {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.score-item {
-    background-color: var(--light-blue);
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-weight: 500;
-    color: var(--dark-blue);
-    border: 1px solid rgba(26, 115, 232, 0.2);
-}
-
-.section {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 6px;
-}
-
-.overall {
-    background-color: var(--light-blue);
-    border-left: 4px solid var(--primary-blue);
-}
-
-.strengths {
-    background-color: var(--light-green);
-    border-left: 4px solid var(--primary-green);
-}
-
-.improvements {
-    background-color: #fff3e0;
-    border-left: 4px solid #ff9800;
-}
-
-.recommendations {
-    background-color: #f3e5f5;
-    border-left: 4px solid #9c27b0;
-}
-
-.section-title {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #333;
-    display: flex;
-    align-items: center;
-}
-
-.section-title::before {
-    content: "";
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-.overall .section-title::before {
-    background-color: var(--primary-blue);
-}
-
-.strengths .section-title::before {
-    background-color: var(--primary-green);
-}
-
-.improvements .section-title::before {
-    background-color: #ff9800;
-}
-
-.recommendations .section-title::before {
-    background-color: #9c27b0;
-}
-
-.student-id {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.9rem;
 }
 
 .webcam-container {
     margin: 20px 0;
     text-align: center;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 #webcam {
@@ -184,33 +76,39 @@ button {
     transition: all 0.3s ease;
 }
 
-#capture-btn {
-    background-color: #3498db;
+#toggle-capture-btn {
+    padding: 12px 25px;
+    font-weight: 500;
+    min-width: 220px;
+}
+
+/* Button state styles */
+.stop-btn {
+    background-color: var(--primary-red) !important;
     color: white;
 }
 
-#capture-btn:hover {
-    background-color: #2980b9;
+.stop-btn:hover {
+    background-color: var(--dark-red) !important;
 }
 
-#download-btn {
-    background-color: #2ecc71;
+.start-btn {
+    background-color: var(--primary-green) !important;
     color: white;
 }
 
-#download-btn:hover {
-    background-color: #27ae60;
-}
-
-#download-btn:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
+.start-btn:hover {
+    background-color: var(--dark-green) !important;
 }
 
 /* Snapshot display */
 .snapshot-container {
     margin: 20px 0;
     text-align: center;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 #snapshot {
@@ -230,4 +128,105 @@ button {
     text-align: center;
     margin: 15px 0;
     font-weight: bold;
+}
+
+/* Status messages */
+.status-message {
+    text-align: center;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-weight: 500;
+}
+
+.active {
+    background-color: #e6f4ea;
+    color: #137333;
+    border-left: 4px solid #34a853;
+}
+
+.paused {
+    background-color: #fef8e7;
+    color: #b06000;
+    border-left: 4px solid #f9ab00;
+}
+
+.status-success {
+    background-color: #e6f4ea;
+    color: #137333;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.status-error {
+    background-color: #fce8e6;
+    color: #c5221f;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* Teacher Prompt Section */
+.teacher-prompt-section {
+    margin: 30px 0;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+textarea#teacher-prompt {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 16px;
+    resize: vertical;
+    min-height: 120px;
+    transition: border-color 0.3s;
+}
+
+textarea#teacher-prompt:focus {
+    border-color: var(--primary-blue);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+#submit-prompt-btn {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#submit-prompt-btn:hover {
+    background-color: var(--dark-blue);
+}
+
+.server-response {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: var(--light-blue);
+    border-left: 4px solid var(--primary-blue);
+    border-radius: 4px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
 }

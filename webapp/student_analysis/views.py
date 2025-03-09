@@ -59,3 +59,16 @@ def save_image(request):
             'success': False,
             'message': f'Error saving image: {str(e)}'
         }, status=500)
+
+
+@require_POST
+def process_prompt(request):
+    prompt_text = request.POST.get('prompt_text')
+    response = f"Processing prompt: {prompt_text}"
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Image saved successfully',
+        'response': response
+    })
+

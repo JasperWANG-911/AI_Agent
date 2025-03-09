@@ -1,8 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Get references to elements
     const video = document.getElementById('webcam');
     const canvas = document.getElementById('canvas');
     const snapshot = document.getElementById('snapshot');
     const errorMessage = document.getElementById('error-message');
+    const teacherPromptForm = document.getElementById('teacher-prompt-form');
+    const promptStatus = document.getElementById('prompt-status');
+    const toggleCaptureBtn = document.getElementById('toggle-capture-btn');
+    const captureStatus = document.getElementById('capture-status');
+    const serverResponse = document.getElementById('server-response'); // Add reference to new element
 
     const constraints = {
         video: true,
@@ -11,9 +17,85 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let captureInterval; // Variable to store the interval ID
     const CAPTURE_INTERVAL_MS = 5000; // 5 seconds
+    let isCapturing = false; // Flag to track if automatic capture is active
 
     // Get CSRF token from the form with the csrf_token
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Toggle automatic capture
+    toggleCaptureBtn.addEventListener('click', function() {
+        if (isCapturing) {
+            stopAutomaticCapture();
+        } else {
+            startAutomaticCapture();
+        }
+    });
+
+    // Function to stop automatic capture
+    function stopAutomaticCapture() {
+        if (captureInterval) {
+            clearInterval(captureInterval);
+            captureInterval = null;
+            isCapturing = false;
+
+            // Update UI
+            toggleCaptureBtn.textContent = 'Start Automatic Capture';
+            toggleCaptureBtn.classList.remove('stop-btn');
+            toggleCaptureBtn.classList.add('start-btn');
+            captureStatus.textContent = 'Automatic capture is paused';
+            captureStatus.className = 'status-message paused';
+        }
+    }
+
+    // Handle teacher prompt submission
+    teacherPromptForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const promptText = document.getElementById('teacher-prompt').value.trim();
+
+        if (!promptText) {
+            promptStatus.textContent = 'Please enter some notes before submitting.';
+            promptStatus.className = 'status-message paused';
+            return;
+        }
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('prompt_text', promptText);
+        formData.append('timestamp', new Date().toISOString());
+
+        // Send to server - adjust endpoint as needed
+        fetch('/process_prompt/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Prompt saved successfully:', data);
+            promptStatus.textContent = 'Notes submitted successfully!';
+            promptStatus.className = 'status-message active';
+
+            // Display the server response
+            if (data.response) {
+                serverResponse.textContent = data.response;
+                serverResponse.style.display = 'block';
+            }
+
+            document.getElementById('teacher-prompt').value = ''; // Clear textarea
+        })
+        .catch(error => {
+            console.error('Error saving prompt:', error);
+            promptStatus.textContent = 'Failed to submit notes. Please try again.';
+            promptStatus.className = 'status-message status-error';
+        });
+    });
 
     // Access the webcam
     async function startWebcam() {
@@ -22,8 +104,9 @@ document.addEventListener('DOMContentLoaded', function() {
             video.srcObject = stream;
             errorMessage.textContent = '';
 
-            // Start automatic capture every 5 seconds once webcam is ready
+            // Start automatic capture once webcam is ready
             startAutomaticCapture();
+
         } catch (err) {
             errorMessage.textContent = `Error accessing the webcam: ${err.message}`;
             console.error('Error accessing the webcam:', err);
@@ -37,13 +120,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Set interval for subsequent photos
         captureInterval = setInterval(capturePhoto, CAPTURE_INTERVAL_MS);
+        isCapturing = true;
 
-        // Add status message to inform the user
-        const statusElement = document.createElement('div');
-        statusElement.id = 'auto-capture-status';
-        statusElement.className = 'status-message';
-        statusElement.textContent = 'Auto-capture active: Taking a photo every 5 seconds';
-        document.querySelector('.button-container').appendChild(statusElement);
+        // Update UI
+        toggleCaptureBtn.textContent = 'Stop Automatic Capture';
+        toggleCaptureBtn.classList.remove('start-btn');
+        toggleCaptureBtn.classList.add('stop-btn');
+        captureStatus.textContent = 'Automatic capture is active';
+        captureStatus.className = 'status-message active';
     }
 
     // Capture a photo
@@ -123,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return formattedTimestamp;
     }
 
-    // Function to update save status - This function is referenced but not defined in your original code
+    // Function to update save status
     function updateSaveStatus(success, filename) {
         let statusElement = document.getElementById('save-status');
 
