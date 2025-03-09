@@ -177,7 +177,6 @@ Please design an analysis plan that efficiently answers this query using the ava
                     csv_files = []
                     for file in results.get("files_processed", []):
                         file_path = os.path.join(directory_path, file) if not os.path.isabs(file) else file
-<<<<<<< HEAD
                         
                         if os.path.basename(file_path).startswith("~$"):
                             print(f" Skipping temporary file: {file_path}")
@@ -189,12 +188,6 @@ Please design an analysis plan that efficiently answers this query using the ava
                             if success:
                                 csv_files.append(csv_file)
 
-=======
-                        if file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-                            csv_file = file_path.rsplit('.', 1)[0] + '.csv'
-                            excel_to_csv(file_path, csv_file)
-                            csv_files.append(csv_file)
->>>>>>> ae72ae323cd2999bc3ded851afd87a8f34735b30
                         elif file_path.endswith('.csv'):
                             csv_files.append(file_path)
 
@@ -204,12 +197,7 @@ Please design an analysis plan that efficiently answers this query using the ava
                 # Analyze student performance
                 elif function_name == "analyze_student_performance":
                     if "csv_files" not in results or not results["csv_files"]:
-<<<<<<< HEAD
                         print(" No CSV files available for analysis. Make sure excel_to_csv step is included in the plan.")
-=======
-                        print(
-                            " No CSV files available for analysis. Make sure excel_to_csv step is included in the plan.")
->>>>>>> ae72ae323cd2999bc3ded851afd87a8f34735b30
                         continue
 
                     for csv_file in results.get("csv_files", []):

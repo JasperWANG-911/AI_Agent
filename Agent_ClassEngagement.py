@@ -311,7 +311,7 @@ Please answer the query based on these results."""
             plan = self.design_analysis_plan(transformed_query, image_path, slide_image_path)
             
             # 3. Execute plan
-            results = self.execute_plan(plan, image_path, students_folder)
+            results = self.execute_plan(plan, image_path, students_folder, slide_image_path)
             
             # 4. Generate response (passing both original and transformed queries)
             response = self.generate_response(transformed_query, results, original_query)

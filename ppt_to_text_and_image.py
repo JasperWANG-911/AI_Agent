@@ -6,15 +6,12 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import make_pipeline
 import joblib  # For saving/loading models
 import easyocr  # For extracting text from images
-<<<<<<< HEAD
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 # then import Easyocr library
 import easyocr
-=======
->>>>>>> ae72ae323cd2999bc3ded851afd87a8f34735b30
 
 # Ensure Tesseract is installed and set its path (Update this path if needed)
 
@@ -64,10 +61,5 @@ def classify_slide(image_path, model_name="subject_classifier.pkl"):
 
 
 # Example Usage
-<<<<<<< HEAD
 #slide_path = "ppts_and_images/image.png"  # Update with the actual slide image path
 #print(classify_slide(slide_path))
-=======
-slide_path = "ppts_and_images/image.png"  # Update with the actual slide image path
-print(classify_slide(slide_path))
->>>>>>> ae72ae323cd2999bc3ded851afd87a8f34735b30
